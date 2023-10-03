@@ -34,6 +34,8 @@ public class ChatController {
     // SSE endpoint to stream responses
     @GetMapping(value = "/streamResponses", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ApiResponse> streamResponses(@RequestParam String prompt) {
-        return ollamaService.sendPrompt("mistral:latest", prompt);
+        return ollamaService.sendPrompt("mistral:latest", prompt)
+                .takeUntil(apiResponse -> apiResponse.isDone());
     }
+
 }

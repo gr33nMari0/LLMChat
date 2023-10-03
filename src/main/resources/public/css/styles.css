@@ -1,0 +1,129 @@
+/* Basic styling for chat UI */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    width: 100vw; /* Full viewport width */
+    overflow-x: hidden; /* Prevents any unintentional horizontal scrolling */
+}
+
+.chat-header {
+    padding: 40px 20px;  /* Padding for top and sides */
+    text-align: center;  /* Horizontally centering the text */
+    height: 150px;       /* Setting a fixed height */
+    display: flex;       /* Using flexbox to center content */
+    justify-content: center; /* Horizontally center with flexbox */
+    align-items: center;     /* Vertically center with flexbox */
+    flex-direction: column;  /* Stack items vertically */
+    background-color: #f7f7f7; /* Light grey background */
+}
+
+.chat-header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px; /* Small space between the title and subtitle */
+    color: #666;       /* Medium grey for the header */
+}
+
+.chat-header p {
+    color: #999;       /* Light grey for the secondary text */
+    font-size: 1.2em;
+    margin-top: 0;     /* Remove default margin */
+}
+
+.chat {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%; /* Ensure full width */
+}
+
+.chat-header {
+    width: 100%; /* Ensure full width */
+    padding: 40px 20px;
+    text-align: center;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background-color: #f7f7f7;
+}
+
+.chat-container {
+    flex-grow: 1;
+    overflow-y: scroll;
+    padding: 20px;
+}
+
+.chat-bubble {
+    max-width: 70%;
+    margin: 10px;
+    padding: 10px;
+    border-radius: 15px;
+    word-wrap: break-word;
+}
+
+.user {
+    background-color: #007bff;
+    color: white;
+    align-self: flex-end;
+}
+
+.other {
+    background-color: #f2f2f2;
+    color: black;
+    align-self: flex-start;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+}
+
+.input-field {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.send-button,
+.continue-button,
+.stop-stream-button {
+    margin-left: 10px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.send-button {
+    background-color: #007bff;
+    color: white;
+}
+
+.continue-button {
+    background-color: #f39c12;
+    color: white;
+}
+
+.stop-stream-button {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Disabled button styling */
+button[disabled] {
+    background-color: #e0e0e0; /* A muted gray */
+    color: #a0a0a0; /* A darker gray for text */
+    cursor: not-allowed; /* The 'no entry' cursor */
+}
+
+/* If you want to maintain border for some buttons */
+button[disabled].some-button-class {
+    border-color: #c0c0c0; /* Gray border if any */
+}

@@ -2,59 +2,163 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>LLM Chat</title>
+    <link rel="stylesheet" type="text/css" href="/css/styles.css">
     <script th:inline="javascript">
         let eventSource;
+        let isStreamingResponse = false;
+        let stopStreamingFlag = false;
+        let lastPrompt = ''; // Store the last prompt
+        let accumulatedResponses = ''; // Store the accumulated responses
 
-        function startEventSource() {
-            let prompt = document.getElementById('prompt').value;
+        function startEventSource(prompt) {
+            stopStreamingFlag = false;
+
             eventSource = new EventSource('/streamResponses?prompt=' + encodeURIComponent(prompt));
-
             eventSource.onmessage = function(event) {
-                let responseDiv = document.getElementById('responseDiv');
+                if (stopStreamingFlag) {
+                    return;
+                }
                 let jsonData = JSON.parse(event.data);
-                let promptPart = jsonData.response;
-                responseDiv.innerHTML += promptPart;
+
+                if (jsonData.done) {
+                    isStreamingResponse = false;
+                } else {
+                    appendResponseToChat(jsonData.response, 'other');
+                    isStreamingResponse = true;
+                }
+
+                if (jsonData.done) {
+                    isStreamingResponse = false;
+
+                    // Re-enable input and buttons
+                    document.getElementById('prompt').disabled = false;
+                    document.querySelector('.send-button').disabled = false;
+                    document.querySelector('.continue-button').disabled = false;
+                }
             };
 
             eventSource.onerror = function(event) {
                 console.error('Error occurred:', event);
                 eventSource.close();
+
+                // Re-enable input and buttons
+                document.getElementById('prompt').disabled = false;
+                document.querySelector('.send-button').disabled = false;
+                document.querySelector('.continue-button').disabled = false;
             };
+
+            // Disable input and buttons
+            document.getElementById('prompt').disabled = true;
+            document.querySelector('.send-button').disabled = true;
+            document.querySelector('.continue-button').disabled = true;
         }
 
         function stopEventSource() {
             if (eventSource) {
                 eventSource.close();
+                eventSource = null;
+                stopStreamingFlag = true;
+                console.log("Event source closed now.");
             }
+
+            // Re-enable input and buttons
+            document.getElementById('prompt').disabled = false;
+            document.querySelector('.send-button').disabled = false;
+            document.querySelector('.continue-button').disabled = false;
         }
 
         function sendPrompt() {
-            let prompt = document.getElementById('prompt').value;
-            let responseDiv = document.getElementById('responseDiv');
-            responseDiv.innerHTML = 'Sending prompt...';
+            let prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) {
+                return;
+            }
 
-            // Make an AJAX request to send the prompt
+            // Store the last prompt
+            lastPrompt = prompt;
+            // Reset accumulated responses
+            accumulatedResponses = '';
+
+            appendResponseToChat(prompt, 'user');
+
             let xhr = new XMLHttpRequest();
             xhr.open('POST', '/send', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4 && xhr.status === 200) {
-                    responseDiv.innerHTML = 'Prompt sent successfully!';
-                    startEventSource(); // Start streaming responses after sending the prompt
+                    console.log('Prompt sent successfully!');
+                    startEventSource(prompt);
                 } else if (xhr.readyState === 4) {
-                    responseDiv.innerHTML = 'Failed to send prompt. Status: ' + xhr.status;
+                    console.error('Failed to send prompt. Status: ' + xhr.status);
                 }
             };
             xhr.send('prompt=' + encodeURIComponent(prompt));
+            document.getElementById('prompt').value = '';
+        }
+
+        function appendResponseToChat(message, sender) {
+            let chatContainer = document.getElementById('chatContainer');
+            if (!message) {
+                return;
+            }
+            if (sender === 'other') {
+                // Store the responses
+                accumulatedResponses += message;
+            }
+            if (sender === 'user' || !isStreamingResponse) {
+                let chatBubble = document.createElement('div');
+                chatBubble.className = 'chat-bubble ' + sender;
+                chatBubble.textContent = message;
+                chatContainer.appendChild(chatBubble);
+            } else if (sender === 'other' && isStreamingResponse) {
+                let existingChatBubble = chatContainer.querySelector('.chat-bubble.other:last-child');
+                if (existingChatBubble) {
+                    existingChatBubble.textContent += message;
+                } else {
+                    let chatBubble = document.createElement('div');
+                    chatBubble.className = 'chat-bubble ' + sender;
+                    chatBubble.textContent = message;
+                    chatContainer.appendChild(chatBubble);
+                }
+            }
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function getContinuePrompt() {
+            let responseSnippetLength = Math.floor(accumulatedResponses.length * 0.10);
+            let responseSnippet = accumulatedResponses.slice(-responseSnippetLength);
+            return `${lastPrompt} ${responseSnippet}`;
+        }
+
+        function continueLastPrompt() {
+            let continuePromptText = getContinuePrompt();
+            let promptElement = document.getElementById('prompt');
+            promptElement.value = continuePromptText;
+        }
+
+        function handleEnterKey(event) {
+            // Check if the key pressed is 'Enter' without pressing 'Shift'
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();  // Prevent the default behavior (adding a newline)
+                sendPrompt();           // Send the prompt
+            }
         }
     </script>
 </head>
 <body>
-<div>
-    <textarea id="prompt"></textarea>
-    <button type="button" onclick="sendPrompt()">Send</button>
-    <button type="button" onclick="stopEventSource()">Stop Streaming</button>
+<div class="chat">
+    <div class="chat-header">
+        <h1>Welcome to LLM Chat!</h1>
+        <p>Send a prompt below and the "mistral:latest" model will respond.</p>
+    </div>
+    <div id="chatContainer" class="chat-container">
+        <!-- Chat bubbles will be appended here -->
+    </div>
+    <div class="input-container">
+        <textarea id="prompt" class="input-field" placeholder="Type your message..." onkeydown="handleEnterKey(event)"></textarea>
+        <button type="button" onclick="sendPrompt()" class="send-button">Send</button>
+        <button type="button" onclick="continueLastPrompt()" class="continue-button">Continue</button>
+        <button type="button" onclick="stopEventSource()" class="stop-stream-button">Stop Streaming</button>
+    </div>
 </div>
-<div id="responseDiv"></div>
 </body>
 </html>

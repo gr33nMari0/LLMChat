@@ -19,7 +19,8 @@ public class OllamaService {
         return webClient.post()
                 .uri(uriBuilder -> uriBuilder.path("/generate").build())
                 .body(BodyInserters.fromValue(String.format("{\"model\": \"%s\",\"prompt\": \"%s\"}", model, prompt)))
-                .retrieve()
-                .bodyToFlux(ApiResponse.class);
+                .exchange()
+                .flatMapMany(clientResponse -> clientResponse.bodyToFlux(ApiResponse.class));
     }
+
 }

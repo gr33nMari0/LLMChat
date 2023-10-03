@@ -9,11 +9,18 @@
         let stopStreamingFlag = false;
         let lastPrompt = ''; // Store the last prompt
         let accumulatedResponses = ''; // Store the accumulated responses
+        let lastResponseContext = [];
 
         function startEventSource(prompt) {
             stopStreamingFlag = false;
 
-            eventSource = new EventSource('/streamResponses?prompt=' + encodeURIComponent(prompt));
+            let url = '/streamResponses?prompt=' + encodeURIComponent(prompt);
+            if (lastResponseContext && lastResponseContext.length > 0) {
+                url += '&context=' + encodeURIComponent(JSON.stringify(lastResponseContext));
+                console.log(url);
+            }
+
+            eventSource = new EventSource(url);
             eventSource.onmessage = function(event) {
                 if (stopStreamingFlag) {
                     return;
@@ -22,6 +29,8 @@
 
                 if (jsonData.done) {
                     isStreamingResponse = false;
+                    lastResponseContext = null;
+                    lastResponseContext = jsonData.context;
                 } else {
                     appendResponseToChat(jsonData.response, 'other');
                     isStreamingResponse = true;
@@ -91,9 +100,16 @@
                     console.error('Failed to send prompt. Status: ' + xhr.status);
                 }
             };
-            xhr.send('prompt=' + encodeURIComponent(prompt));
+
+            let requestData = 'prompt=' + encodeURIComponent(prompt);
+            if (lastResponseContext && lastResponseContext.length > 0) {
+                requestData += '&context=' + encodeURIComponent(JSON.stringify(lastResponseContext));
+            }
+
+            xhr.send(requestData);
             document.getElementById('prompt').value = '';
         }
+
 
         function appendResponseToChat(message, sender) {
             let chatContainer = document.getElementById('chatContainer');

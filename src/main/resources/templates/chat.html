@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>LLM Chat</title>
+</head>
+<body>
+<div>
+    <form action="/send" method="post">
+        <textarea name="prompt"></textarea>
+        <button type="submit">Send</button>
+    </form>
+</div>
+<div th:text="${response}"></div>
+</body>
+</html>

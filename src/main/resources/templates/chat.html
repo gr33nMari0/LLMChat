@@ -2,14 +2,59 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>LLM Chat</title>
+    <script th:inline="javascript">
+        let eventSource;
+
+        function startEventSource() {
+            let prompt = document.getElementById('prompt').value;
+            eventSource = new EventSource('/streamResponses?prompt=' + encodeURIComponent(prompt));
+
+            eventSource.onmessage = function(event) {
+                let responseDiv = document.getElementById('responseDiv');
+                let jsonData = JSON.parse(event.data);
+                let promptPart = jsonData.response;
+                responseDiv.innerHTML += promptPart;
+            };
+
+            eventSource.onerror = function(event) {
+                console.error('Error occurred:', event);
+                eventSource.close();
+            };
+        }
+
+        function stopEventSource() {
+            if (eventSource) {
+                eventSource.close();
+            }
+        }
+
+        function sendPrompt() {
+            let prompt = document.getElementById('prompt').value;
+            let responseDiv = document.getElementById('responseDiv');
+            responseDiv.innerHTML = 'Sending prompt...';
+
+            // Make an AJAX request to send the prompt
+            let xhr = new XMLHttpRequest();
+            xhr.open('POST', '/send', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    responseDiv.innerHTML = 'Prompt sent successfully!';
+                    startEventSource(); // Start streaming responses after sending the prompt
+                } else if (xhr.readyState === 4) {
+                    responseDiv.innerHTML = 'Failed to send prompt. Status: ' + xhr.status;
+                }
+            };
+            xhr.send('prompt=' + encodeURIComponent(prompt));
+        }
+    </script>
 </head>
 <body>
 <div>
-    <form action="/send" method="post">
-        <textarea name="prompt"></textarea>
-        <button type="submit">Send</button>
-    </form>
+    <textarea id="prompt"></textarea>
+    <button type="button" onclick="sendPrompt()">Send</button>
+    <button type="button" onclick="stopEventSource()">Stop Streaming</button>
 </div>
-<div th:text="${response}"></div>
+<div id="responseDiv"></div>
 </body>
 </html>
